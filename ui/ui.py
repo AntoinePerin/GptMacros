@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from macros.Macros import run_macro_1, run_macro_2
+import json
+import os
 
 class App:
     def __init__(self):
@@ -13,15 +15,16 @@ class App:
         self.active_button = None
         self.modifiers = set()
         self.keys = set()
+        self.bindings = []
+
+        # Charger les données depuis le fichier JSON
+        self.load_key_bindings()
 
     def set_window_size(self):
         lgt = 400
         wdt = 300
-
-        # Taille maximale de la fenêtre
-        self.root.maxsize(lgt, wdt)  # Largeur max x Hauteur max
-        # Taille minimale de la fenêtre (optionnel)
-        self.root.minsize(lgt, wdt)   # Largeur min x Hauteur min
+        self.root.maxsize(lgt, wdt)  
+        self.root.minsize(lgt, wdt)   
 
     def create_tabs(self):
         tab_control = ttk.Notebook(self.root)
@@ -32,7 +35,6 @@ class App:
         tab_control.add(tab1, text='Macros')
         tab_control.add(tab2, text='À propos')
 
-        # Créer la liste de key bindings avec boutons dans le premier onglet
         self.create_key_bindings(tab1)
 
         label1 = ttk.Label(tab1, text='Cliquez sur le bouton pour exécuter la macro 1.')
@@ -62,10 +64,10 @@ class App:
             frame = ttk.Frame(parent)
             frame.pack(pady=5, padx=10, fill='x')
 
-            # Configurer les colonnes pour le alignement
-            frame.columnconfigure(0, weight=1, uniform="a")  # Label de description
-            frame.columnconfigure(1, weight=1, uniform="a")  # Label des touches
-            frame.columnconfigure(2, weight=0)  # Bouton Modifier
+            # Configurer les colonnes pour l'alignement
+            frame.columnconfigure(0, weight=1, uniform="a")  
+            frame.columnconfigure(1, weight=1, uniform="a")  
+            frame.columnconfigure(2, weight=0)  
 
             desc_label = ttk.Label(frame, text=macro_label, anchor='w', wraplength=200, justify='left')
             desc_label.grid(row=i, column=0, padx=(0, 5), sticky='w')
@@ -112,6 +114,9 @@ class App:
             self.root.unbind('<KeyPress>')
             self.root.unbind('<KeyRelease>')
 
+            # Sauvegarder la combinaison dans un fichier JSON
+            self.save_key_bindings()
+
     def get_combination(self):
         # Ordre des modificateurs
         order = {'Control_L': 'Ctrl', 'Control_R': 'Ctrl', 'Shift_L': 'Shift', 'Shift_R': 'Shift',
@@ -124,9 +129,18 @@ class App:
         
         return '+'.join(sorted_modifiers + main_keys)
 
+    def save_key_bindings(self):
+        bindings = {i: label.cget('text') for i, label in enumerate(self.key_bindings)}
+        with open('bindings.json', 'w') as f:
+            json.dump(bindings, f)
+
+    def load_key_bindings(self):
+        if os.path.exists('bindings.json'):
+            with open('bindings.json', 'r') as f:
+                bindings = json.load(f)
+                for i, key_label in enumerate(self.key_bindings):
+                    if str(i) in bindings:
+                        key_label.config(text=bindings[str(i)])
+
     def run(self):
         self.root.mainloop()
-
-if __name__ == "__main__":
-    app = App()
-    app.run()
