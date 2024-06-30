@@ -11,7 +11,8 @@ class App:
         self.create_tabs()
         self.active_label = None
         self.active_button = None
-        self.modifiers = []
+        self.modifiers = set()
+        self.keys = set()
 
     def set_window_size(self):
         lgt = 400
@@ -60,18 +61,20 @@ class App:
         for i, (macro_label, key) in enumerate(zip(label_Macro, data)):
             frame = ttk.Frame(parent)
             frame.pack(pady=5, padx=10, fill='x')
-            frame.grid_columnconfigure(0, weight=1)
-            frame.grid_columnconfigure(1, weight=0)
-            frame.grid_columnconfigure(2, weight=0)
 
-            desc_label = ttk.Label(frame, text=macro_label, anchor='w', wraplength=150)
-            desc_label.grid(row=i, column=0, sticky='w', padx=(0, 5))
+            # Configurer les colonnes pour le alignement
+            frame.columnconfigure(0, weight=1, uniform="a")  # Label de description
+            frame.columnconfigure(1, weight=1, uniform="a")  # Label des touches
+            frame.columnconfigure(2, weight=0)  # Bouton Modifier
 
-            key_label = ttk.Label(frame, text=key, width=15, font=('Helvetica', 10, 'bold'), anchor='w')
-            key_label.grid(row=i, column=1, padx=(0, 5))
+            desc_label = ttk.Label(frame, text=macro_label, anchor='w', wraplength=200, justify='left')
+            desc_label.grid(row=i, column=0, padx=(0, 5), sticky='w')
+
+            key_label = ttk.Label(frame, text=key, font=('Helvetica', 10, 'bold'), anchor='w')
+            key_label.grid(row=i, column=1, padx=(0, 5), sticky='w')
 
             button = ttk.Button(frame, text="Modifier")
-            button.grid(row=i, column=2, padx=5, sticky='e')
+            button.grid(row=i, column=2, padx=5, sticky='w')
             button.config(command=lambda l=key_label, b=button: self.capture_key_combination(l, b))
 
             self.key_bindings.append(key_label)
@@ -84,42 +87,46 @@ class App:
 
         self.active_label = label
         self.active_button = button
-        self.modifiers = []
-        label.config(text="Appuyer sur une touche...", width=30)
+        self.modifiers.clear()
+        self.keys.clear()
+        label.config(text="Appuyer sur une touche...", wraplength=200)
         button.config(state='disabled')
         self.root.bind('<KeyPress>', self.record_key_combination)
-        self.root.bind('<KeyRelease>', self.record_key_combination)
+        self.root.bind('<KeyRelease>', self.record_key_release)
 
     def record_key_combination(self, event):
-        if event.type == '2':  # KeyPress
-            combination = self.get_combination(event)
-            if combination:
-                self.modifiers.append(combination)
-        elif event.type == '3':  # KeyRelease
-            if self.active_label:
-                self.active_label.config(text='+'.join(self.modifiers))
-                self.active_button.config(state='normal')
-                self.active_label = None
-                self.active_button = None
-                self.root.unbind('<KeyPress>')
-                self.root.unbind('<KeyRelease>')
-
-    def get_combination(self, event):
         keysym = event.keysym
-        state = event.state
-        modifiers = []
-        if state & 0x4:  # Control
-            modifiers.append('Ctrl')
-        if state & 0x1:  # Shift
-            modifiers.append('Shift')
-        if state & 0x20000:  # Alt
-            modifiers.append('Alt')
+        if keysym in {'Shift_L', 'Shift_R', 'Control_L', 'Control_R', 'Alt_L', 'Alt_R', 'Meta_L', 'Meta_R'}:
+            self.modifiers.add(keysym)
+        else:
+            self.keys.add(keysym)
 
-        # Ajoute la touche principale à la liste des modificateurs si elle n'est pas un modificateur
-        if keysym not in ['Shift_L', 'Shift_R', 'Control_L', 'Control_R', 'Alt_L', 'Alt_R', 'Meta_L', 'Meta_R']:
-            modifiers.append(keysym)
+    def record_key_release(self, event):
+        # Mise à jour de la combinaison lors du relâchement des touches
+        combination = self.get_combination()
+        if self.active_label:
+            self.active_label.config(text=combination)
+            self.active_button.config(state='normal')
+            self.active_label = None
+            self.active_button = None
+            self.root.unbind('<KeyPress>')
+            self.root.unbind('<KeyRelease>')
 
-        return '+'.join(modifiers) if modifiers else None
+    def get_combination(self):
+        # Ordre des modificateurs
+        order = {'Control_L': 'Ctrl', 'Control_R': 'Ctrl', 'Shift_L': 'Shift', 'Shift_R': 'Shift',
+                 'Alt_L': 'Alt', 'Alt_R': 'Alt', 'Meta_L': 'Meta', 'Meta_R': 'Meta'}
+
+        # Convertir les modificateurs en liste triée
+        sorted_modifiers = [order[key] for key in sorted(self.modifiers) if key in order]
+        # Ajouter les touches principales
+        main_keys = sorted(self.keys)
+        
+        return '+'.join(sorted_modifiers + main_keys)
 
     def run(self):
         self.root.mainloop()
+
+if __name__ == "__main__":
+    app = App()
+    app.run()
