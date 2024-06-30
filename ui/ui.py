@@ -3,6 +3,8 @@ from tkinter import ttk, messagebox
 from macros.Macros import run_macro_1, run_macro_2
 import json
 import os
+from pynput import keyboard
+import threading
 
 class App:
     def __init__(self):
@@ -19,6 +21,10 @@ class App:
 
         # Charger les données depuis le fichier JSON
         self.load_key_bindings()
+
+        # Démarrer le listener pour les frappes de touches dans un thread séparé
+        self.listener_thread = threading.Thread(target=self.start_listener)
+        self.listener_thread.start()
 
     def set_window_size(self):
         lgt = 400
@@ -142,5 +148,29 @@ class App:
                     if str(i) in bindings:
                         key_label.config(text=bindings[str(i)])
 
+    def on_press(self, key):
+        try:
+            # Afficher la touche pressée si elle a une représentation de caractère
+            print(f'Key pressed: {key.char}')
+        except AttributeError:
+            # Pour les touches spéciales comme Shift, Ctrl, etc.
+            print(f'Special key pressed: {key}')
+
+    def on_release(self, key):
+        # Optionnel: ajouter des actions lors du relâchement de la touche
+        if key == keyboard.Key.esc:
+            # Arrêter le listener si la touche 'esc' est pressée
+            return False
+
+    def start_listener(self):
+        # Configurer et démarrer le listener
+        with keyboard.Listener(on_press=self.on_press, on_release=self.on_release) as listener:
+            listener.join()
+
     def run(self):
         self.root.mainloop()
+
+# Lancer l'application
+if __name__ == "__main__":
+    app = App()
+    app.run()
