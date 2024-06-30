@@ -133,7 +133,7 @@ class App:
         # Ajouter les touches principales
         main_keys = sorted(self.keys)
         
-        return '+'.join(sorted_modifiers + main_keys)
+        return ' + '.join(sorted_modifiers + main_keys)
 
     def save_key_bindings(self):
         bindings = {i: label.cget('text') for i, label in enumerate(self.key_bindings)}
@@ -157,7 +157,10 @@ class App:
             print(f'Special key pressed: {key}')
 
     def on_release(self, key):
-        # Optionnel: ajouter des actions lors du relâchement de la touche
+        # Afficher la combinaison au format lisible lors du relâchement des touches
+        combination = self.get_combination()
+        if combination:
+            print(f'Key combination: {combination}')
         if key == keyboard.Key.esc:
             # Arrêter le listener si la touche 'esc' est pressée
             return False
