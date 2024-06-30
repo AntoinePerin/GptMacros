@@ -17,14 +17,20 @@ class App:
         self.active_button = None
         self.modifiers = set()
         self.keys = set()
-        self.bindings = []
+        self.bindings = {}
 
         # Charger les données depuis le fichier JSON
         self.load_key_bindings()
 
+        # Créer un événement pour signaler l'arrêt du listener
+        self.stop_event = threading.Event()
+
         # Démarrer le listener pour les frappes de touches dans un thread séparé
         self.listener_thread = threading.Thread(target=self.start_listener)
         self.listener_thread.start()
+
+        # Assurer l'arrêt propre du thread à la fermeture de l'application
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
     def set_window_size(self):
         lgt = 400
@@ -161,14 +167,30 @@ class App:
         combination = self.get_combination()
         if combination:
             print(f'Key combination: {combination}')
+            self.check_combination(combination)  # Vérifier la combinaison
+
         if key == keyboard.Key.esc:
             # Arrêter le listener si la touche 'esc' est pressée
+            self.stop_event.set()
             return False
 
     def start_listener(self):
         # Configurer et démarrer le listener
         with keyboard.Listener(on_press=self.on_press, on_release=self.on_release) as listener:
-            listener.join()
+            self.stop_event.wait()  # Attendre que l'événement d'arrêt soit déclenché
+            listener.stop()  # Arrêter le listener proprement
+
+    def check_combination(self, combination):
+        # Vérifier si la combinaison est dans les bindings
+        if combination in self.bindings.values():
+            print(f'Combination {combination} is bound to a macro.')
+            # Vous pouvez ajouter ici la logique pour exécuter la macro correspondante
+
+    def on_close(self):
+        # Méthode appelée lors de la fermeture de la fenêtre
+        self.stop_event.set()  # Arrêter le listener
+        self.listener_thread.join()  # Attendre que le thread du listener se termine
+        self.root.destroy()  # Détruire la fenêtre Tkinter
 
     def run(self):
         self.root.mainloop()
