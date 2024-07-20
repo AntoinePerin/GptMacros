@@ -5,8 +5,6 @@ import threading
 
 class App:
     def __init__(self):
-        # interface utilisateur
-        self.initUi()
 
         #Listener, touches préssées
         self.pressed_vks = set()
@@ -20,6 +18,9 @@ class App:
             "Correcteur d'orthographe": (frozenset([keyboard.Key.shift, keyboard.KeyCode(vk=65)]), self.function_1),  # shift + a
             "Traduction en Anglais": (frozenset([keyboard.Key.shift, keyboard.KeyCode(vk=66)]), self.function_2),    # shift + b
         }
+
+        # interface utilisateur
+        self.initUi()
         
         # Démarrer le listener pour les frappes de touches dans un thread séparé
         self.listener_thread = threading.Thread(target=self.start_listener)
@@ -81,20 +82,21 @@ class App:
         frame.columnconfigure(2, weight=0)
 
         # Créer des labels non modifiables avec labels fixes
-        for label, (combination, _) in self.combinations.items():
+        for i,(label, (combination, _)) in enumerate(self.combinations.items()):
 
             desc_label = ttk.Label(frame, text=label, anchor='w', wraplength=200, justify='left')
-            desc_label.grid(row=0, column=0, padx=(0, 5), sticky='w')
+            desc_label.grid(row=i, column=0, padx=(0, 5), sticky='w')
 
             key_label = ttk.Label(frame, text=self.get_combination_str(combination), font=('Helvetica', 10, 'bold'), anchor='w')
-            key_label.grid(row=0, column=1, padx=(0, 5), sticky='w')
+            key_label.grid(row=i, column=1, padx=(0, 5), sticky='w')
 
             button = ttk.Button(frame, text="Modifier")
-            button.grid(row=0, column=2, padx=5, sticky='w')
+            button.grid(row=i, column=2, padx=5, sticky='w')
             #button.config(command=lambda l=key_label, b=button: self.capture_key_combination(l, b))
 
             # self.key_bindings.append(key_label)
             # self.labels.append(desc_label)
+            
 
     def get_combination_str(self, combination):
         # Convertir la combinaison de touches en une chaîne lisible
