@@ -6,7 +6,7 @@ import threading
 class App:
     def __init__(self):
         # interface utilisateur
-        self.initUi();
+        self.initUi()
 
         #Listener, touches préssées
         self.pressed_vks = set()
@@ -16,9 +16,9 @@ class App:
         self.labels = set()
 
         #dico combinaison foncton
-        self.combination_to_function = {
-            frozenset([keyboard.Key.shift, keyboard.KeyCode(vk=65)]): self.function_1,  # shift + a
-            frozenset([keyboard.Key.shift, keyboard.KeyCode(vk=66)]): self.function_2,  # shift + b
+        self.combinations = {
+            "Correcteur d'orthographe": (frozenset([keyboard.Key.shift, keyboard.KeyCode(vk=65)]), self.function_1),  # shift + a
+            "Traduction en Anglais": (frozenset([keyboard.Key.shift, keyboard.KeyCode(vk=66)]), self.function_2),    # shift + b
         }
         
         # Démarrer le listener pour les frappes de touches dans un thread séparé
@@ -37,6 +37,7 @@ class App:
     def initUi(self):
         # interface utilisateur
         self.root = tk.Tk()
+        self.root.title("GptMacros")
         self.set_window_size()
         self.create_tabs()
 
@@ -56,7 +57,7 @@ class App:
         tab_control.add(tab2, text='À propos')
 
         self.render_tab_1(tab1)
-        self.render_tab_2(tab1)
+        self.render_tab_2(tab2)
 
         tab_control.pack(expand=1, fill='both')
 
@@ -71,35 +72,39 @@ class App:
 
     def create_key_bindings(self, parent):
 
-        # Labels des fonctionnalités
-        label_Macro = ["Correcteur d'orthographe : ", "Traduction en Anglais : "]
+        frame = ttk.Frame(parent)
+        frame.pack(pady=5, padx=10, fill='x')
 
-        # Exemple de données initiales pour les touches
-        data = ["A", "B"]
+        # Configurer les colonnes pour l'alignement
+        frame.columnconfigure(0, weight=1, uniform="a")  
+        frame.columnconfigure(1, weight=1, uniform="a")  
+        frame.columnconfigure(2, weight=0)
 
         # Créer des labels non modifiables avec labels fixes
-        for i, (macro_label, key) in enumerate(zip(label_Macro, data)):
-            frame = ttk.Frame(parent)
-            frame.pack(pady=5, padx=10, fill='x')
+        for label, (combination, _) in self.combinations.items():
 
-            # Configurer les colonnes pour l'alignement
-            frame.columnconfigure(0, weight=1, uniform="a")  
-            frame.columnconfigure(1, weight=1, uniform="a")  
-            frame.columnconfigure(2, weight=0)  
+            desc_label = ttk.Label(frame, text=label, anchor='w', wraplength=200, justify='left')
+            desc_label.grid(row=0, column=0, padx=(0, 5), sticky='w')
 
-            desc_label = ttk.Label(frame, text=macro_label, anchor='w', wraplength=200, justify='left')
-            desc_label.grid(row=i, column=0, padx=(0, 5), sticky='w')
-
-            key_label = ttk.Label(frame, text=key, font=('Helvetica', 10, 'bold'), anchor='w')
-            key_label.grid(row=i, column=1, padx=(0, 5), sticky='w')
+            key_label = ttk.Label(frame, text=self.get_combination_str(combination), font=('Helvetica', 10, 'bold'), anchor='w')
+            key_label.grid(row=0, column=1, padx=(0, 5), sticky='w')
 
             button = ttk.Button(frame, text="Modifier")
-            button.grid(row=i, column=2, padx=5, sticky='w')
-            button.config(command=lambda l=key_label, b=button: self.capture_key_combination(l, b))
+            button.grid(row=0, column=2, padx=5, sticky='w')
+            #button.config(command=lambda l=key_label, b=button: self.capture_key_combination(l, b))
 
-            self.key_bindings.append(key_label)
-            self.labels.append(desc_label)
-        
+            # self.key_bindings.append(key_label)
+            # self.labels.append(desc_label)
+
+    def get_combination_str(self, combination):
+        # Convertir la combinaison de touches en une chaîne lisible
+        keys = []
+        for key in combination:
+            if isinstance(key, keyboard.Key):
+                keys.append(key.name)
+            else:
+                keys.append(chr(key.vk))
+        return "+".join(keys)
 
     #_________________________________Listener___________________________________
 
