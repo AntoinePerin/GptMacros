@@ -10,8 +10,11 @@ class App:
         self.pressed_vks = set()
         
         #combinaison enregistrées
-        self.key_bindings = set()
-        self.labels = set()
+        self.key_bindings = []
+        self.labels = []
+
+        #etat capturing nouvelle combinaison ou ecoute des touches
+        self.capturing = False
 
         #dico combinaison foncton
         self.combinations = {
@@ -90,13 +93,34 @@ class App:
             key_label = ttk.Label(frame, text=self.get_combination_str(combination), font=('Helvetica', 10, 'bold'), anchor='w')
             key_label.grid(row=i, column=1, padx=(0, 5), sticky='w')
 
-            button = ttk.Button(frame, text="Modifier")
-            button.grid(row=i, column=2, padx=5, sticky='w')
-            #button.config(command=lambda l=key_label, b=button: self.capture_key_combination(l, b))
+            # button = ttk.Button(frame, text="Modifier", command=lambda l=label: self.capture_key_combination(l))
+            # button.grid(row=i, column=2, padx=5, sticky='w')
 
             # self.key_bindings.append(key_label)
             # self.labels.append(desc_label)
-            
+
+    def capture_key_combination(self, label):
+         # Mettre à jour l'interface pour indiquer la capture des touches
+        messagebox.showinfo("Capture de touches", f"Appuyez sur la nouvelle combinaison pour '{label}'")
+        self.capturing = True
+        self.current_label = label
+        self.current_combination = set()
+
+    def update_combination(self, new_combination):
+        # Mettre à jour la combinaison pour l'action
+        for label, (combination, func) in self.combinations.items():
+            if label == self.current_label:
+                self.combinations[label] = (new_combination, func)
+                break
+
+        # Mettre à jour l'affichage des combinaisons de touches
+        self.refresh_key_bindings()
+        self.capturing = False
+        self.current_label = None
+
+    def refresh_key_bindings(self):
+        for label_widget, (label, (combination, _)) in zip(self.key_bindings, self.combinations.items()):
+            label_widget.config(text=self.get_combination_str(combination))  
 
     def get_combination_str(self, combination):
         # Convertir la combinaison de touches en une chaîne lisible
@@ -123,13 +147,23 @@ class App:
     def on_press(self,key):
         vk = self.get_vk(key)  # Get the key's vk
         self.pressed_vks.add(vk)  # Add it to the set of currently pressed keys
-        for combination in self.combination_to_function:  # Loop through each combination
+
+        # if self.capturing:
+        #     self.current_combination.add(vk)
+
+        for label, (combination, func) in self.combinations.items():  # Loop through each combination
             if self.is_combination_pressed(combination):  # Check if all keys in the combination are pressed
-                self.combination_to_function[combination]()  # If so, execute the function
+                func()  # If so, execute the function
     
     def on_release(self, key):
         vk = self.get_vk(key)  # Get the key's vk
-        self.pressed_vks.remove(vk)  # Remove it from the set of currently pressed keys
+        
+        if vk in self.pressed_vks:
+            self.pressed_vks.remove(vk)  # Remove it from the set of currently pressed keys
+
+        if self.capturing and not self.pressed_vks:
+            new_combination = frozenset(self.current_combination)
+            self.update_combination(new_combination)
 
     def is_combination_pressed(self,combination):
         return all([self.get_vk(key) in self.pressed_vks for key in combination])
@@ -148,6 +182,11 @@ class App:
 
     def run(self):
         self.root.mainloop()
+
+    #TO DO
+    # empecher deux même combinaisons
+    # trier les combinaisons pour que les touches speciales soient en premier
+    #ajout d'un bouton permettant l'ajout de nouvelle macros
 
 
 if __name__ == "__main__":
