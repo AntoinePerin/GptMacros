@@ -8,10 +8,6 @@ class App:
 
         #Listener, touches préssées
         self.pressed_vks = set()
-        
-        #combinaison enregistrées
-        # self.key_bindings = []
-        # self.labels = []
 
         #capture nouvelle touche
         self.current_label = None
@@ -97,8 +93,9 @@ class App:
             key_label = ttk.Label(frame, text=self.get_combination_str(combination), font=('Helvetica', 10, 'bold'), anchor='w')
             key_label.grid(row=i, column=1, padx=(0, 5), sticky='w')
 
-            button = ttk.Button(frame, text="Modifier", command=lambda l=label: self.capture_key_combination(l))
+            button = ttk.Button(frame, text="Modifier")
             button.grid(row=i, column=2, padx=5, sticky='w')
+            button.config(command=lambda l=label, t=key_label: self.capture_key_combination(l,t))
 
             # Stocker les labels et leur combinaison dans le dictionnaire
             self.combinations[label] = (combination, func, key_label)
@@ -106,9 +103,15 @@ class App:
             # self.key_bindings.append(key_label)
             # self.labels.append(desc_label)
 
-    def capture_key_combination(self, label):
+    def capture_key_combination(self, label, ttk_label):
         # Mettre à jour l'interface pour indiquer la capture des touches
-        # messagebox.showinfo("Capture de touches", f"Appuyez sur la nouvelle combinaison pour '{label}'")
+        if self.current_label is not None:
+            messagebox.showerror("Erreur", "Vous ne pouvez modifier qu'une ligne à la fois.")
+            return
+
+        ttk_label.config(text="Appuyer sur une touche...", wraplength=200)
+
+        
         self.capturing = True
         self.current_label = label
 
@@ -141,13 +144,6 @@ class App:
         return "+".join(keys)
 
     #_________________________________Listener___________________________________
-
-
-    def function_1(self):
-        print('Executed function_1')
-
-    def function_2(self):
-        print('Executed function_2')
 
     def get_vk(self, key):
         return key.vk if hasattr(key, 'vk') else key.value.vk
@@ -182,6 +178,13 @@ class App:
         with keyboard.Listener(on_press=self.on_press, on_release=self.on_release) as listener:
             self.stop_event.wait()  # Attendre que l'événement d'arrêt soit déclenché
             listener.stop()  # Arrêter le listener proprement
+    
+    #_________________________________Fonctions GPT___________________________________
+    def function_1(self):
+        print('Executed function_1')
+
+    def function_2(self):
+        print('Executed function_2')
 
     def on_close(self):
         # Méthode appelée lors de la fermeture de la fenêtre
