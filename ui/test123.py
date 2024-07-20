@@ -1,14 +1,25 @@
 import tkinter as tk
+from tkinter import ttk, messagebox
 from pynput import keyboard
 import threading
 
 class App:
     def __init__(self):
         # interface utilisateur
-        self.root = tk.Tk()
+        self.initUi();
 
         #Listener, touches préssées
         self.pressed_vks = set()
+        
+        #combinaison enregistrées
+        self.key_bindings = set()
+        self.labels = set()
+
+        #dico combinaison foncton
+        self.combination_to_function = {
+            frozenset([keyboard.Key.shift, keyboard.KeyCode(vk=65)]): self.function_1,  # shift + a
+            frozenset([keyboard.Key.shift, keyboard.KeyCode(vk=66)]): self.function_2,  # shift + b
+        }
         
         # Démarrer le listener pour les frappes de touches dans un thread séparé
         self.listener_thread = threading.Thread(target=self.start_listener)
@@ -20,12 +31,78 @@ class App:
         # Assurer l'arrêt propre du thread à la fermeture de l'application
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
-        # Create a mapping of keys to function (use frozenset as sets/lists are not hashable - so they can't be used as keys)
-        # Note the missing `()` after function_1 and function_2 as want to pass the function, not the return value of the function
-        self.combination_to_function = {
-            frozenset([keyboard.Key.shift, keyboard.KeyCode(vk=65)]): self.function_1,  # shift + a
-            frozenset([keyboard.Key.shift, keyboard.KeyCode(vk=66)]): self.function_2,  # shift + b
-        }
+
+    #___________________________UI_____________________________________
+
+    def initUi(self):
+        # interface utilisateur
+        self.root = tk.Tk()
+        self.set_window_size()
+        self.create_tabs()
+
+    def set_window_size(self):
+        lgt = 400
+        wdt = 300
+        self.root.maxsize(lgt, wdt)  
+        self.root.minsize(lgt, wdt)
+
+    def create_tabs(self):
+        tab_control = ttk.Notebook(self.root)
+
+        tab1 = ttk.Frame(tab_control)
+        tab2 = ttk.Frame(tab_control)
+
+        tab_control.add(tab1, text='Macros')
+        tab_control.add(tab2, text='À propos')
+
+        self.render_tab_1(tab1)
+        self.render_tab_2(tab1)
+
+        tab_control.pack(expand=1, fill='both')
+
+    def render_tab_1(self, parent):
+        self.create_key_bindings(parent)
+        
+    def render_tab_2(self, parent):
+        label = ttk.Label(parent, text='Cette application exécute des macros clavier.')
+        label.pack(pady=10)
+        label2 = ttk.Label(parent, text='Développé par Antoine Périn (et ChatGpt <3).')
+        label2.pack(pady=10)
+
+    def create_key_bindings(self, parent):
+
+        # Labels des fonctionnalités
+        label_Macro = ["Correcteur d'orthographe : ", "Traduction en Anglais : "]
+
+        # Exemple de données initiales pour les touches
+        data = ["A", "B"]
+
+        # Créer des labels non modifiables avec labels fixes
+        for i, (macro_label, key) in enumerate(zip(label_Macro, data)):
+            frame = ttk.Frame(parent)
+            frame.pack(pady=5, padx=10, fill='x')
+
+            # Configurer les colonnes pour l'alignement
+            frame.columnconfigure(0, weight=1, uniform="a")  
+            frame.columnconfigure(1, weight=1, uniform="a")  
+            frame.columnconfigure(2, weight=0)  
+
+            desc_label = ttk.Label(frame, text=macro_label, anchor='w', wraplength=200, justify='left')
+            desc_label.grid(row=i, column=0, padx=(0, 5), sticky='w')
+
+            key_label = ttk.Label(frame, text=key, font=('Helvetica', 10, 'bold'), anchor='w')
+            key_label.grid(row=i, column=1, padx=(0, 5), sticky='w')
+
+            button = ttk.Button(frame, text="Modifier")
+            button.grid(row=i, column=2, padx=5, sticky='w')
+            button.config(command=lambda l=key_label, b=button: self.capture_key_combination(l, b))
+
+            self.key_bindings.append(key_label)
+            self.labels.append(desc_label)
+        
+
+    #_________________________________Listener___________________________________
+
 
     def function_1(self):
         print('Executed function_1')
